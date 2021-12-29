@@ -24,6 +24,7 @@ Model::Model(const IloEnv& env_, const Data& data_) :
     std::cout << "\t Model was correctly built ! " << std::endl;                 
 }
 // breaks[0] = 0 and breaks[last] = 1.0
+/* Returns g(y) where g(y) is a function approximating log(y) from above */
 double Model::approx_log_from_above(double y, const vector<IloNum> &breaks, const vector<IloNum> &u){
     int nbBreaks = breaks.size();
     int last = nbBreaks - 1; 
