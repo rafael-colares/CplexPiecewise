@@ -1,0 +1,26 @@
+#################################################
+#                Input File Paths               #
+#################################################
+nodeFile=/mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/node_R.csv
+linkFile=/mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/link.csv
+demandFile=/mnt/c/Resilience/VNF_DISJOINT/CPLEX/APPROX/src/dataset/10demand_1.csv
+vnfFile=/mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/vnf.csv
+
+#################################################
+#            Optimization Parameters            #
+#################################################
+linearRelaxation=0
+timeLimit=3600
+
+#################################################
+#            Formulation Improvements           #
+#################################################
+strong_node_capacity=1
+nb_paths_upper_bound=1
+nb_paths_lower_bound=1
+
+section_failure=0
+#################################################
+#              Output File Paths                #
+#################################################
+outputFile=/mnt/c/Resilience/Output/tests.txt

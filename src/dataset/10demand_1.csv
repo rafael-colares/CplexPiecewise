@@ -1,0 +1,10 @@
+name;source;target;max_latency;bandwidth;availability;vnf_list;
+d_1;N8;N12;10;10;0.999983;vnf_1,vnf_4
+d_2;N14;N8;10;9;0.999939;vnf_3,vnf_2,vnf_6,vnf_8
+d_3;N13;N8;10;6;0.999968;vnf_2
+d_4;N11;N8;10;7;0.999907;vnf_3
+d_5;N1;N12;10;12;0.999955;vnf_1,vnf_3,vnf_6,vnf_7,vnf_5
+d_6;N6;N7;10;11;0.999972;vnf_1,vnf_4,vnf_7,vnf_5,vnf_6
+d_7;N13;N3;10;11;0.999968;vnf_4,vnf_2,vnf_1,vnf_3,vnf_6
+d_8;N10;N11;10;7;0.999945;vnf_8
+d_9;N10;N6;10;2;0.999962;vnf_8,vnf_4,vnf_5,vnf_3

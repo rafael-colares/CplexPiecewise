@@ -1,0 +1,37 @@
+===============================================================================
+EXTENSION NAME : linecount
+EXTENSION VERSION : 0.1.7
+-------------------------------------------------------------------------------
+count time : 2021-03-10 16:34:38
+count workspace : /mnt/c/Resilience/src_03-12-2021
+total files : 25
+total code lines : 1178
+total comment lines : 482
+total blank lines : 316
+
+exec, it is a binary file.
+instance/*.o, it is a binary file.
+instance/data.cpp, code is 203, comment is 39, blank is 27.
+instance/data.hpp, code is 74, comment is 44, blank is 38.
+instance/input.cpp, code is 51, comment is 5, blank is 9.
+instance/input.hpp, code is 31, comment is 31, blank is 21.
+main.cpp, code is 22, comment is 5, blank is 7.
+makefile, code is 36, comment is 21, blank is 8.
+network/demand.cpp, code is 16, comment is 8, blank is 3.
+network/demand.hpp, code is 34, comment is 35, blank is 14.
+network/link.cpp, code is 11, comment is 8, blank is 3.
+network/link.hpp, code is 23, comment is 25, blank is 9.
+network/node.cpp, code is 11, comment is 8, blank is 4.
+network/node.hpp, code is 23, comment is 25, blank is 11.
+network/vnf.cpp, code is 17, comment is 8, blank is 3.
+network/vnf.hpp, code is 24, comment is 28, blank is 18.
+parameters.txt, code is 10, comment is 0, blank is 2.
+solver/callback.cpp, code is 192, comment is 32, blank is 26.
+solver/callback.hpp, code is 44, comment is 48, blank is 36.
+solver/model.cpp, code is 213, comment is 47, blank is 38.
+solver/model.hpp, code is 44, comment is 40, blank is 17.
+tools/others.cpp, code is 18, comment is 2, blank is 2.
+tools/others.hpp, code is 7, comment is 5, blank is 5.
+tools/reader.cpp, code is 52, comment is 4, blank is 4.
+tools/reader.hpp, code is 22, comment is 14, blank is 11.
+===============================================================================

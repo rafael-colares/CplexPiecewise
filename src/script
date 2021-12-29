@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+echo "This is a script for running an Orange program.";
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_C_10-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_R_10-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_U_10-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_C_20-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_R_20-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_U_20-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_C_30-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_R_30-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_U_30-1.txt;
+./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_C_40-1.txt;
+./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_R_40-1.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_U_40-1.txt;

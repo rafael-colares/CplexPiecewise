@@ -1,0 +1,169 @@
+{
+    "extension": "linecount",
+    "version": "0.1.7",
+    "workspace": "/mnt/c/Resilience/src_03-12-2021",
+    "linecount": [
+        {
+            "version": "0.1.7",
+            "counttime": "2021-03-10 16:34:38",
+            "filesum": 25,
+            "codesum": 1178,
+            "commentsum": 482,
+            "blanksum": 316,
+            "filelist": [
+                {
+                    "filename": "exec",
+                    "isbinaryfile": true,
+                    "blank": 0,
+                    "code": 0,
+                    "comment": 0
+                },
+                {
+                    "filename": "instance/*.o",
+                    "isbinaryfile": true,
+                    "blank": 0,
+                    "code": 0,
+                    "comment": 0
+                },
+                {
+                    "blank": 27,
+                    "code": 203,
+                    "comment": 39,
+                    "filename": "instance/data.cpp"
+                },
+                {
+                    "blank": 38,
+                    "code": 74,
+                    "comment": 44,
+                    "filename": "instance/data.hpp"
+                },
+                {
+                    "blank": 9,
+                    "code": 51,
+                    "comment": 5,
+                    "filename": "instance/input.cpp"
+                },
+                {
+                    "blank": 21,
+                    "code": 31,
+                    "comment": 31,
+                    "filename": "instance/input.hpp"
+                },
+                {
+                    "blank": 7,
+                    "code": 22,
+                    "comment": 5,
+                    "filename": "main.cpp"
+                },
+                {
+                    "blank": 8,
+                    "code": 36,
+                    "comment": 21,
+                    "filename": "makefile"
+                },
+                {
+                    "blank": 3,
+                    "code": 16,
+                    "comment": 8,
+                    "filename": "network/demand.cpp"
+                },
+                {
+                    "blank": 14,
+                    "code": 34,
+                    "comment": 35,
+                    "filename": "network/demand.hpp"
+                },
+                {
+                    "blank": 3,
+                    "code": 11,
+                    "comment": 8,
+                    "filename": "network/link.cpp"
+                },
+                {
+                    "blank": 9,
+                    "code": 23,
+                    "comment": 25,
+                    "filename": "network/link.hpp"
+                },
+                {
+                    "blank": 4,
+                    "code": 11,
+                    "comment": 8,
+                    "filename": "network/node.cpp"
+                },
+                {
+                    "blank": 11,
+                    "code": 23,
+                    "comment": 25,
+                    "filename": "network/node.hpp"
+                },
+                {
+                    "blank": 3,
+                    "code": 17,
+                    "comment": 8,
+                    "filename": "network/vnf.cpp"
+                },
+                {
+                    "blank": 18,
+                    "code": 24,
+                    "comment": 28,
+                    "filename": "network/vnf.hpp"
+                },
+                {
+                    "blank": 2,
+                    "code": 10,
+                    "comment": 0,
+                    "filename": "parameters.txt"
+                },
+                {
+                    "blank": 26,
+                    "code": 192,
+                    "comment": 32,
+                    "filename": "solver/callback.cpp"
+                },
+                {
+                    "blank": 36,
+                    "code": 44,
+                    "comment": 48,
+                    "filename": "solver/callback.hpp"
+                },
+                {
+                    "blank": 38,
+                    "code": 213,
+                    "comment": 47,
+                    "filename": "solver/model.cpp"
+                },
+                {
+                    "blank": 17,
+                    "code": 44,
+                    "comment": 40,
+                    "filename": "solver/model.hpp"
+                },
+                {
+                    "blank": 2,
+                    "code": 18,
+                    "comment": 2,
+                    "filename": "tools/others.cpp"
+                },
+                {
+                    "blank": 5,
+                    "code": 7,
+                    "comment": 5,
+                    "filename": "tools/others.hpp"
+                },
+                {
+                    "blank": 4,
+                    "code": 52,
+                    "comment": 4,
+                    "filename": "tools/reader.cpp"
+                },
+                {
+                    "blank": 11,
+                    "code": 22,
+                    "comment": 14,
+                    "filename": "tools/reader.hpp"
+                }
+            ]
+        }
+    ]
+}
