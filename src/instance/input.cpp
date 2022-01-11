@@ -17,9 +17,11 @@ Input::Input(const std::string filename) : parameters_file(filename){
     section_failure_cuts    = (Section_Failure_Cuts)std::stoi(getParameterValue("section_failure="));
     nb_paths_ub             = (Nb_Paths_Upper_Bound)std::stoi(getParameterValue("nb_paths_upper_bound="));
     nb_paths_lb             = (Nb_Paths_Lower_Bound)std::stoi(getParameterValue("nb_paths_lower_bound="));
+    approx_type             = (Approximation_Type)std::stoi(getParameterValue("availability_relax="));
 
     linear_relaxation       = std::stoi(getParameterValue("linearRelaxation="));
     time_limit              = std::stoi(getParameterValue("timeLimit="));
+    nb_breakpoints          = std::stoi(getParameterValue("nb_breakpoints="));
 
     output_file             = getParameterValue("outputFile=");
 
@@ -69,6 +71,7 @@ void Input::print(){
     std::cout << "Strong capacity: " << strong_node_capacity << std::endl;
     std::cout << "Number of paths upper bound: " << nb_paths_ub << std::endl;
     std::cout << "Number of paths lower bound: " << nb_paths_lb << std::endl;
+    std::cout << "\t Number of breakpoints: " << nb_breakpoints << std::endl;
     std::cout << "\t Time Limit: " << time_limit << " seconds" << std::endl;
     std::cout << "\t Output File: " << output_file << std::endl;
 }
