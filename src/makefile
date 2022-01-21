@@ -7,7 +7,7 @@ LIBFORMAT = static_pic
 CCC = g++ -O0 -std=c++11
 CCOPT = -m64 -O -fPIC -fno-strict-aliasing -fexceptions -DNDEBUG -DIL_STD -Wno-ignored-attributes 
 # ---------------------------------------------------------------------
-# Cplex, Concert, Lemon and Boost paths
+# Cplex, Concert, Lemon paths : USER SHOULD CHANGE IT ACCORDING TO ITS NEEDS
 # ---------------------------------------------------------------------
 CONCERTVERSION = concert
 CPLEXVERSION = CPLEX_Studio1210
@@ -25,10 +25,6 @@ LEMONLIBDIR = /opt/lemon/lib/
 LEMONCFLAGS = -I$(LEMONINCDIR)
 LEMONCLNFLAGS = -L$(LEMONLIBDIR) -lemon
 
-BOOSTINCDIR = /mnt/c/soft/boost_1_71_0/
-BOOSTCFLAGS = -I$(BOOSTINCDIR)
-
-CBCDIR = /opt/
 
 # ---------------------------------------------------------------------
 # Flags
@@ -55,7 +51,7 @@ all: main
 
 main:
 	#doxygen ../dconfig
-	$(CCC) -c -Wall -g $(CCFLAGS) $(LEMONCFLAGS) $(BOOSTCFLAGS) $(CPPFILES)
+	$(CCC) -c -Wall -g $(CCFLAGS) $(LEMONCFLAGS) $(CPPFILES)
 	$(CCC) $(CCFLAGS) *.o -g -o exec $(CCLNFLAGS) $(LEMONCLNFLAGS)
 	rm -rf *.o *~ ^
 

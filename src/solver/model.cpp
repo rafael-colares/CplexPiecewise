@@ -15,7 +15,7 @@ Model::Model(const IloEnv& env_, const Data& data_) :
 
     std::cout << "=> Building model ... " << std::endl;
     
-    buildAvailBreakpoints();
+    buildPiecewiseLinearApproximation();
     setVariables();
     setObjective();  
     setConstraints();  
@@ -25,117 +25,190 @@ Model::Model(const IloEnv& env_, const Data& data_) :
 }
 // breaks[0] = 0 and breaks[last] = 1.0
 /* Returns g(y) where g(y) is a function approximating log(y) from above */
-double Model::approx_log_from_above(double y, const vector<IloNum> &breaks, const vector<IloNum> &u){
-    int nbBreaks = breaks.size();
-    int last = nbBreaks - 1; 
-    if (y < 0 || y > 1){
-        std::cerr << "ERROR: approximation is only done between 0 and 1" << std::endl;
-		exit(EXIT_FAILURE);
+// double Model::approx_log_from_above(double y, const vector<IloNum> &breaks, const vector<IloNum> &u){
+//     int nbBreaks = breaks.size();
+//     int last = nbBreaks - 1; 
+//     if (y < 0 || y > 1){
+//         std::cerr << "ERROR: approximation is only done between 0 and 1" << std::endl;
+// 		exit(EXIT_FAILURE);
+//     }
+//     if (y >= 0 && y <= breaks[1]){
+//         return (((1.0 / u[0])*y) + std::log(u[0]) - 1.0);
+//     }
+//     if (y >= breaks[last-1] && y <= 1.0){
+//         return (y - 1.0);
+//     }
+//     for (unsigned int k = 1; k < breaks.size()-2; k++){
+//         if (y >= breaks[k] && y <= breaks[k+1]){
+//             return (((1.0 / u[k])*y) + std::log(u[k]) - 1.0);
+//         }
+//     }
+    
+//     std::cerr << "ERROR: approximation is undefined" << std::endl;
+//     exit(EXIT_FAILURE);
+// }
+
+/* Returns g(val) where g(val) is a function approximating log(val) for a given demand k*/
+double Model::approx_log_from_below(double val, const IloNumVector &breakpoints){
+    const int NB_BREAKS = breakpoints.size();
+    double slope = 0.0;
+    double ref = 0.0;
+    if (val < breakpoints[0] || val > breakpoints[NB_BREAKS-1]){
+        std::cerr << "ERROR: weird stuff happening in approximation" << std::endl;
+        return 1;
     }
-    if (y >= 0 && y <= breaks[1]){
-        return (((1.0 / u[0])*y) + std::log(u[0]) - 1.0);
-    }
-    if (y >= breaks[last-1] && y <= 1.0){
-        return (y - 1.0);
-    }
-    for (unsigned int k = 1; k < breaks.size()-2; k++){
-        if (y >= breaks[k] && y <= breaks[k+1]){
-            return (((1.0 / u[k])*y) + std::log(u[k]) - 1.0);
+
+    for (int i = 0; i < NB_BREAKS-1; i++){
+        if (val >= breakpoints[i] && val <= breakpoints[i+1]){
+            ref = breakpoints[i];
+            slope = (std::log(breakpoints[i+1]) - std::log(breakpoints[i])) / (breakpoints[i+1] - breakpoints[i]);
+            double delta_X = val - ref;
+            return (std::log(ref) + delta_X*slope);
         }
     }
     
     std::cerr << "ERROR: approximation is undefined" << std::endl;
     exit(EXIT_FAILURE);
 }
-/* Set up the breakpoints for approximating log(avail). */
-void Model::buildAvailBreakpoints(){
-    PATH_NB_BREAKS = 5;
-    const int NB_DEMANDS = data.getNbDemands();
-    //breakpoint.resize(NB_BREAKS);
-    path_vector_u.resize(NB_DEMANDS);
-    path_breakpoint.resize(NB_DEMANDS);
-    config_breakpoint.resize(NB_DEMANDS);
-    config_vector_u.resize(NB_DEMANDS);
+/* Set up the vector u for approximating log(avail). */
+void Model::buildPiecewiseLinearApproximation(){
+    if (data.getInput().isBasic() == false){
+        buildAvailVector_u();
+        buildAvailBreakpoints();
+        buildUnavailVector_u();
+        buildUnavailBreakpoints();
+    }
+    // std::cout << "\t >>> PLOTTING <<< " << std::endl;     
+    // std::string plot_file = "plot.txt";
+	// std::ofstream fileReport(plot_file); // File report
+    // if(!fileReport)
+    // {
+    //     std::cerr << "ERROR: Unable to access plot file." << std::endl;
+    //     exit(EXIT_FAILURE);
+    // }
+    // int NB_BREAKS = avail_breakpoints[0].size();
+    
+    // fileReport << "avail:" << std::endl;
+    // for (double x = avail_breakpoints[0][0]; x <= avail_breakpoints[0][NB_BREAKS-1]; x+=0.0001){
+    //     double approx = approx_log_from_below(x, avail_breakpoints[0]);
+    //     fileReport  << x << ","
+    //                 << approx << ","
+    //                 << std::log(x) << ","
+    //                 << std::exp(approx) << ","
+    //                 << x - std::exp(approx) << std::endl;
+    // }
 
+    // fileReport << "unavail:" << std::endl;
+    // NB_BREAKS = unavail_breakpoints[0].size();
+    // for (double x = unavail_breakpoints[0][0]; x <= unavail_breakpoints[0][NB_BREAKS-1]; x+=0.0001){
+    //     double approx = approx_log_from_below(x, unavail_breakpoints[0]);
+    //     fileReport  << x << ","
+    //                 << approx << ","
+    //                 << std::log(x) << ","
+    //                 << std::exp(approx) << ","
+    //                 << x - std::exp(approx) << std::endl;
+    // }
+    // fileReport.close();
+}
+/* Set up the vector u for approximating log(avail). */
+void Model::buildAvailVector_u(){
+    const int PATH_NB_BREAKS    = data.getInput().getNbBreakpoints();
+    const int NB_DEMANDS        = data.getNbDemands();
+    int PATH_NB_TOUCHS          = PATH_NB_BREAKS;
+
+    if (data.getInput().getApproximationType() ==  Input::APPROXIMATION_TYPE_RESTRICTION){
+        PATH_NB_TOUCHS = PATH_NB_BREAKS + 1;
+    }
+
+    avail_touch.resize(NB_DEMANDS);
     for (int q = 0; q < NB_DEMANDS; q++){
         double leastAvailPath = data.getChainAvailability(data.getNLeastAvailableNodes(data.getDemand(q).getNbVNFs()));
         double mostAvailPath = data.getChainAvailability(data.getNMostAvailableNodes(1));
     
-        path_vector_u[q].push_back(leastAvailPath);
-        for (int k = 1; k < PATH_NB_BREAKS; k++){
-            double expo = ((double) (PATH_NB_BREAKS - 1 - k)) / (PATH_NB_BREAKS - 1);
+        for (int k = 1; k <= PATH_NB_TOUCHS; k++){
+            double expo = ((double) (PATH_NB_TOUCHS - k)) / (PATH_NB_TOUCHS - 1);
             double u = mostAvailPath * std::pow((leastAvailPath/mostAvailPath), expo);
-            path_vector_u[q].push_back(u);
+            avail_touch[q].push_back(u);
         }
-        printVector(path_vector_u[q], "path vector u");
-    
-        path_breakpoint[q].push_back(0.0);
-        for (int k = 0; k < PATH_NB_BREAKS-1; k++){
-            double log_u_k1 = std::log(path_vector_u[q][k+1]);
-            double log_u_k = std::log(path_vector_u[q][k]);
-            double inv_u_k1 = 1.0/path_vector_u[q][k+1];
-            double inv_u_k = 1.0/path_vector_u[q][k];
-            path_breakpoint[q].push_back( (log_u_k1 - log_u_k) / (inv_u_k - inv_u_k1) );
-        }
-        path_breakpoint[q].push_back(1.0);
-        printVector(path_breakpoint[q], "path breakpoints");
-    
-
-        config_vector_u[q].push_back(1.0- mostAvailPath);
-        for (int k = 1; k < PATH_NB_BREAKS; k++){
-            double expo = ((double) (PATH_NB_BREAKS - 1 - k)) / (PATH_NB_BREAKS - 1);
-            double u = (1.0 - leastAvailPath) * std::pow(((1.0 - mostAvailPath)/(1.0 - leastAvailPath)), expo);
-            config_vector_u[q].push_back(u);
-        }
-        printVector(config_vector_u[q], "config vector u");
-
-        config_breakpoint[q].push_back(0.0);
-        for (int k = 0; k < config_vector_u[q].size()-1; k++){
-            double log_u_k1 = std::log(config_vector_u[q][k+1]);
-            double log_u_k = std::log(config_vector_u[q][k]);
-            double inv_u_k1 = 1.0/config_vector_u[q][k+1];
-            double inv_u_k = 1.0/config_vector_u[q][k];
-            config_breakpoint[q].push_back( (log_u_k1 - log_u_k) / (inv_u_k - inv_u_k1) );
-        }
-        config_breakpoint[q].push_back(1.0);
-        //path_breakpoint.push_back(1.0);
-        printVector(config_breakpoint[q], "config breakpoints");
+        printVector(avail_touch[q], "avail touch");
     }
-    // CONFIG_NB_BREAKS = 25;
-    // std::cout << "vector u: " << std::endl;
-    // for (int k = 0; k < CONFIG_NB_BREAKS; k++){
-    //     double expo = ((double) (CONFIG_NB_BREAKS - 1 - k)) / (CONFIG_NB_BREAKS - 1);
-    //     config_vector_u.push_back(std::pow(0.00000001, expo));
-    //     std::cout << k << ": " << config_vector_u[k] << std::endl;
-    // }
+}
 
-    // std::cout << "config_breakpoints: " << std::endl;
-    // for (int k = 0; k < CONFIG_NB_BREAKS-1; k++){
-    //     double log_u_k1 = std::log(config_vector_u[k+1]);
-    //     double log_u_k = std::log(config_vector_u[k]);
-    //     double inv_u_k1 = 1.0/config_vector_u[k+1];
-    //     double inv_u_k = 1.0/config_vector_u[k];
-    //     config_breakpoint.push_back( (log_u_k1 - log_u_k) / (inv_u_k - inv_u_k1) );
-    //     std::cout << k << ": " << config_breakpoint[k] << std::endl;
-    // }
-    // config_breakpoint.push_back(1.0);
-
-/*
-    std::string plot_file = "plot.txt";
-	std::ofstream fileReport(plot_file); // File report
-    if(!fileReport)
-    {
-        std::cerr << "ERROR: Unable to access plot file." << std::endl;
-        exit(EXIT_FAILURE);
+/* Set up the breakpoints for approximating log(avail). */
+void Model::buildAvailBreakpoints(){
+    const int NB_DEMANDS = data.getNbDemands();
+    avail_breakpoints.resize(NB_DEMANDS);
+    if (data.getInput().getApproximationType() == Input::APPROXIMATION_TYPE_RESTRICTION){
+        for (int q = 0; q < NB_DEMANDS; q++){
+            for (unsigned int k = 1; k < avail_touch[q].size(); k++){
+                double log_u_k1 = std::log(avail_touch[q][k]);
+                double log_u_k = std::log(avail_touch[q][k-1]);
+                double inv_u_k1 = 1.0/avail_touch[q][k];
+                double inv_u_k = 1.0/avail_touch[q][k-1];
+                
+                avail_breakpoints[q].push_back( (log_u_k1 - log_u_k) / (inv_u_k - inv_u_k1) );
+            }
+            printVector(avail_breakpoints[q], "avail breakpoints");
+        }
     }
+    else{
+        for (int q = 0; q < NB_DEMANDS; q++){
+            for (unsigned int k = 0; k < avail_touch[q].size(); k++){
+                avail_breakpoints[q].push_back(avail_touch[q][k]);
+            }
+            printVector(avail_breakpoints[q], "avail breakpoints");
+        }
+    }
+}
 
-    for (double x = 0.001; x <= 1; x+=0.001){
-        fileReport  << x << ","
-                    << approx_log_from_above(x, path_breakpoint, path_vector_u) << ","
-                    << std::log(x) << std::endl;
-    }		   
-    fileReport.close();
-    */
+/* Set up the vector u for approximating log(unavail). */
+void Model::buildUnavailVector_u(){
+    const int NB_DEMANDS        = data.getNbDemands();
+    unavail_touch.resize(NB_DEMANDS);
+
+    for (int q = 0; q < NB_DEMANDS; q++){
+        const int PATH_NB_TOUCHS    = (int)avail_touch[q].size();
+        //std::cout << (int)avail_touch[q].size() << std::endl;
+        //const int PATH_NB_TOUCHS    = 12;
+        double leastAvailPath = data.getChainAvailability(data.getNLeastAvailableNodes(data.getDemand(q).getNbVNFs()));
+        double mostAvailPath = data.getChainAvailability(data.getNMostAvailableNodes(1));
+        double UB = 1.0 - leastAvailPath;
+        double LB = 1.0 - mostAvailPath;
+        for (int k = 1; k <= PATH_NB_TOUCHS; k++){
+            double expo = ((double) (PATH_NB_TOUCHS - k)) / (PATH_NB_TOUCHS - 1);
+            double u = (UB) * std::pow((LB/UB), expo);
+            unavail_touch[q].push_back(u);
+        }
+        unavail_touch[q].push_back(1.0);
+        printVector(unavail_touch[q], "config vector u");
+    }
+}
+
+/* Set up the breakpoints for approximating log(unavail). */
+void Model::buildUnavailBreakpoints(){
+    const int NB_DEMANDS = data.getNbDemands();
+    unavail_breakpoints.resize(NB_DEMANDS);
+    
+    if (data.getInput().getApproximationType() == Input::APPROXIMATION_TYPE_RESTRICTION){
+        for (int q = 0; q < NB_DEMANDS; q++){
+            for (unsigned int k = 1; k <= unavail_touch[q].size()-1; k++){
+                double log_u_k1 = std::log(unavail_touch[q][k]);
+                double log_u_k = std::log(unavail_touch[q][k-1]);
+                double inv_u_k1 = 1.0/unavail_touch[q][k];
+                double inv_u_k = 1.0/unavail_touch[q][k-1];
+                unavail_breakpoints[q].push_back( (log_u_k1 - log_u_k) / (inv_u_k - inv_u_k1) );
+            }
+            printVector(unavail_breakpoints[q], "unavail breakpoints");
+        }
+    }
+    else{
+        for (int q = 0; q < NB_DEMANDS; q++){
+            for (unsigned int k = 0; k < unavail_touch[q].size(); k++){
+                unavail_breakpoints[q].push_back(unavail_touch[q][k]);
+            }
+            printVector(unavail_breakpoints[q], "unavail breakpoints");
+        }
+    }
 }
 
 /** Set up the Cplex parameters. **/
@@ -149,22 +222,24 @@ void Model::setCplexParameters(){
 	//chosenContext |= IloCplex::Callback::Context::Id::Relaxation;
 
     /* Use callback within the defined contexts */
-	// cplex.use(callback, chosenContext);
+    if (data.getInput().getApproximationType() == Input::APPROXIMATION_TYPE_RELAXATION || data.getInput().isBasic()){
+	    cplex.use(callback, chosenContext);
+    }
 
     /** Time limit definition **/
     cplex.setParam(IloCplex::Param::TimeLimit, data.getInput().getTimeLimit());    // Execution time limited
 	
-    cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-9);
-    cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-9);
-    cplex.setParam(IloCplex::Param::MIP::Tolerances::Integrality, 1e-12); 
-    cplex.setParam(IloCplex::Param::MIP::Tolerances::AbsMIPGap, 1e-12); 
-    // cplex.setParam(IloCplex::Param::MIP::Tolerances::Linearization, 1e-12); 
-    // cplex.setParam(IloCplex::Param::MIP::Tolerances::LowerCutoff, 1e-6); 
-    cplex.setParam(IloCplex::Param::MIP::Tolerances::MIPGap, 1e-12); 
-    cplex.setParam(IloCplex::Param::MIP::Tolerances::ObjDifference, 1e-12);  
-    cplex.setParam(IloCplex::Param::MIP::Tolerances::RelObjDifference, 1e-12);  
-    // cplex.setParam(IloCplex::Param::MIP::Tolerances::UpperCutoff, 1e-6);    // Execution time limited
-    //cplex.setParam(IloCplex::Param::Threads, 1); // Treads limited
+    // cplex.setParam(IloCplex::Param::Simplex::Tolerances::Feasibility, 1e-9);
+    // cplex.setParam(IloCplex::Param::Simplex::Tolerances::Optimality, 1e-9);
+    // cplex.setParam(IloCplex::Param::MIP::Tolerances::Integrality, 1e-12); 
+    // cplex.setParam(IloCplex::Param::MIP::Tolerances::AbsMIPGap, 1e-12); 
+    // // cplex.setParam(IloCplex::Param::MIP::Tolerances::Linearization, 1e-12); 
+    // // cplex.setParam(IloCplex::Param::MIP::Tolerances::LowerCutoff, 1e-6); 
+    // cplex.setParam(IloCplex::Param::MIP::Tolerances::MIPGap, 1e-12); 
+    // cplex.setParam(IloCplex::Param::MIP::Tolerances::ObjDifference, 1e-12);  
+    // cplex.setParam(IloCplex::Param::MIP::Tolerances::RelObjDifference, 1e-12);  
+    // // cplex.setParam(IloCplex::Param::MIP::Tolerances::UpperCutoff, 1e-6);    // Execution time limited
+    // //cplex.setParam(IloCplex::Param::Threads, 1); // Treads limited
 }
 
 /* Set up variables */
@@ -293,93 +368,56 @@ void Model::setVariables(){
         }
     }
 
-    /* Path availability variables: avail[k][p] */
-    std::cout << "\t > Setting up path availability variables. " << std::endl;
-    avail.resize(NB_DEMANDS);
-    for (int k = 0; k < NB_DEMANDS; k++){
-        const int NB_PATHS = data.getNbPaths(k);
-        avail[k].resize(NB_PATHS);
-        for (int p = 0; p < NB_PATHS; p++){
-            std::string name = "avail(" + std::to_string(k) + "," + std::to_string(p) + ")";
-            avail[k][p] = IloNumVar(env, 0.0, 1.0, ILOFLOAT, name.c_str());
-            model.add(avail[k][p]);
-        }
-    }
-
-
-    /* Path unavailability variables: unavail[k][p] */
-    std::cout << "\t > Setting up path unavailability variables. " << std::endl;
-    unavail.resize(NB_DEMANDS);
-    for (int k = 0; k < NB_DEMANDS; k++){
-        const int NB_PATHS = data.getNbPaths(k);
-        unavail[k].resize(NB_PATHS);
-        for (int p = 0; p < NB_PATHS; p++){
-            std::string name = "unavail(" + std::to_string(k) + "," + std::to_string(p) + ")";
-            unavail[k][p] = IloNumVar(env, 0.0, 1.0, ILOFLOAT, name.c_str());
-            model.add(unavail[k][p]);
-        }
-    }
-
-    /* lambda variables for piecewise linear approx: lambda[k][p][r] */
-    std::cout << "\t > Setting up lambda variables for piecewise linear approx. " << std::endl;
-    lambda.resize(NB_DEMANDS);
-    for (int k = 0; k < NB_DEMANDS; k++){
-        const int NB_PATHS = data.getNbPaths(k);
-        lambda[k].resize(NB_PATHS);
-        for (int p = 0; p < NB_PATHS; p++){
-            lambda[k][p].resize(path_breakpoint[k].size());
-            for (unsigned int r = 0; r < path_breakpoint[k].size(); r++){
-                std::string name = "lambda(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(r) + ")";
-                lambda[k][p][r] = IloNumVar(env, 0.0, 1.0, ILOFLOAT, name.c_str());
-                model.add(lambda[k][p][r]);
+    if(data.getInput().isRelaxation() == false){
+        /* Path availability variables: avail[k][p] */
+        std::cout << "\t > Setting up path availability variables. " << std::endl;
+        avail.resize(NB_DEMANDS);
+        for (int k = 0; k < NB_DEMANDS; k++){
+            const int NB_PATHS = data.getNbPaths(k);
+            avail[k].resize(NB_PATHS);
+            for (int p = 0; p < NB_PATHS; p++){
+                std::string name = "avail(" + std::to_string(k) + "," + std::to_string(p) + ")";
+                avail[k][p] = IloNumVar(env, 0.0, 1.0, ILOFLOAT, name.c_str());
+                model.add(avail[k][p]);
             }
         }
-    }
 
-    /* interval lambda variables for piecewise linear approx: interval[k][p][r] */
-    std::cout << "\t > Setting up interval variables for piecewise linear approx. " << std::endl;
-    interval.resize(NB_DEMANDS);
-    for (int k = 0; k < NB_DEMANDS; k++){
-        const int NB_PATHS = data.getNbPaths(k);
-        interval[k].resize(NB_PATHS);
-        for (int p = 0; p < NB_PATHS; p++){
-            interval[k][p].resize(path_breakpoint[k].size()-1);
-            for (unsigned int r = 0; r < path_breakpoint[k].size()-1; r++){
-                std::string name = "interval(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(r) + ")";
-                interval[k][p][r] = IloNumVar(env, 0.0, 1.0, ILOINT, name.c_str());
-                model.add(interval[k][p][r]);
+
+        /* Approximated path availability variables: approx_log_avail[k][p] */
+        std::cout << "\t > Setting up path availability variables. " << std::endl;
+        approx_log_avail.resize(NB_DEMANDS);
+        for (int k = 0; k < NB_DEMANDS; k++){
+            const int NB_PATHS = data.getNbPaths(k);
+            approx_log_avail[k].resize(NB_PATHS);
+            for (int p = 0; p < NB_PATHS; p++){
+                std::string name = "approx_log_avail(" + std::to_string(k) + "," + std::to_string(p) + ")";
+                approx_log_avail[k][p] = IloNumVar(env, -IloInfinity, 0.0, ILOFLOAT, name.c_str());
+                model.add(approx_log_avail[k][p]);
             }
         }
-    }
-
-    /* c_lambda variables for piecewise linear approx: lambda[k][p][r] */
-    std::cout << "\t > Setting up clambda variables for piecewise linear approx. " << std::endl;
-    c_lambda.resize(NB_DEMANDS);
-    for (int k = 0; k < NB_DEMANDS; k++){
-        const int NB_PATHS = data.getNbPaths(k);
-        c_lambda[k].resize(NB_PATHS);
-        for (int p = 0; p < NB_PATHS; p++){
-            c_lambda[k][p].resize(config_breakpoint[k].size());
-            for (unsigned int r = 0; r < config_breakpoint[k].size(); r++){
-                std::string name = "c_lambda(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(r) + ")";
-                c_lambda[k][p][r] = IloNumVar(env, 0.0, 1.0, ILOFLOAT, name.c_str());
-                model.add(c_lambda[k][p][r]);
+        /* Path unavailability variables: unavail[k][p] */
+        std::cout << "\t > Setting up path unavailability variables. " << std::endl;
+        unavail.resize(NB_DEMANDS);
+        for (int k = 0; k < NB_DEMANDS; k++){
+            const int NB_PATHS = data.getNbPaths(k);
+            unavail[k].resize(NB_PATHS);
+            for (int p = 0; p < NB_PATHS; p++){
+                std::string name = "unavail(" + std::to_string(k) + "," + std::to_string(p) + ")";
+                unavail[k][p] = IloNumVar(env, 0.0, 1.0, ILOFLOAT, name.c_str());
+                model.add(unavail[k][p]);
             }
         }
-    }
 
-    /* interval lambda variables for piecewise linear approx: interval[k][p][r] */
-    std::cout << "\t > Setting up cinterval variables for piecewise linear approx. " << std::endl;
-    c_interval.resize(NB_DEMANDS);
-    for (int k = 0; k < NB_DEMANDS; k++){
-        const int NB_PATHS = data.getNbPaths(k);
-        c_interval[k].resize(NB_PATHS);
-        for (int p = 0; p < NB_PATHS; p++){
-            c_interval[k][p].resize(config_breakpoint[k].size()-1);
-            for (unsigned int r = 0; r < config_breakpoint[k].size()-1; r++){
-                std::string name = "c_interval(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(r) + ")";
-                c_interval[k][p][r] = IloNumVar(env, 0.0, 1.0, ILOINT, name.c_str());
-                model.add(c_interval[k][p][r]);
+        /* Approximated config availability variables: approx_log_unavail[k][p] */
+        std::cout << "\t > Setting up path availability variables. " << std::endl;
+        approx_log_unavail.resize(NB_DEMANDS);
+        for (int k = 0; k < NB_DEMANDS; k++){
+            const int NB_PATHS = data.getNbPaths(k);
+            approx_log_unavail[k].resize(NB_PATHS);
+            for (int p = 0; p < NB_PATHS; p++){
+                std::string name = "approx_log_unavail(" + std::to_string(k) + "," + std::to_string(p) + ")";
+                approx_log_unavail[k][p] = IloNumVar(env, -IloInfinity, 0.0, ILOFLOAT, name.c_str());
+                model.add(approx_log_unavail[k][p]);
             }
         }
     }
@@ -391,7 +429,6 @@ void Model::setObjective(){
     std::cout << "\t Setting up objective function... " << std::endl;
 
 	IloExpr exp(env);
-    //TODO: change obj
   	for(NodeIt n(data.getGraph()); n != lemon::INVALID; ++n) {
         int v = data.getNodeId(n);
         for (int i = 0; i < data.getNbVnfs(); i++){
@@ -427,12 +464,14 @@ void Model::setConstraints(){
     setDisjunctionConstraints();
     setDegreeConstraints();
 
-    setSymmetryBreakingConstraints();
+    if (data.getInput().isBasic() == false){
+        setSymmetryBreakingConstraints();
 
-		/* Add up the approximated path availability constraints. */
-	 setPathAvailApproxConstraints();
-		/* Add up the approximated configuration availability constraints. */
-	 setConfigAvailApproxConstraints();
+            /* Add up the approximated path availability constraints. */
+        setPathAvailApproxConstraints();
+            /* Add up the approximated configuration availability constraints. */
+        setConfigAvailApproxConstraints();
+    }
 /*
     if (data.getInput().getStrongNodeCapacity() == Input::STRONG_NODE_CAPACITY_ON){
         setStrongNodeCapacityConstraints();
@@ -733,17 +772,54 @@ void Model::setStrongNodeCapacityConstraints(){
 }
 
 
+void Model::buildApproximationFunctionAvail(int k, IloNumArray &breakpoints, IloNumArray &slopes){
+    for (unsigned int i = 0; i < avail_breakpoints[k].size(); i++){
+        breakpoints.add(avail_breakpoints[k][i]);
+    }
+    switch (data.getInput().getApproximationType()){
+        case Input::APPROXIMATION_TYPE_RESTRICTION:
+            for (unsigned int i = 0; i < avail_touch[k].size(); i++){
+                double tangent = 1.0/avail_touch[k][i];
+                slopes.add(tangent);
+            }
+            break;
+        case Input::APPROXIMATION_TYPE_RELAXATION:
+            slopes.add( 1.0/avail_touch[k][0] );
+            for (unsigned int i = 0; i < avail_touch[k].size()-1; i++){
+                double delta_X = avail_touch[k][i+1] - avail_touch[k][i];
+                double delta_Y = std::log(avail_touch[k][i+1]) - std::log(avail_touch[k][i]);
+                slopes.add( delta_Y/delta_X );
+            }
+            slopes.add( 0 );
+            break;
+        default:
+            throw IloCplex::Exception(-1, "ERROR: Unexpected availability approx !");
+    }
+}
 
 void Model::setPathAvailApproxConstraints(){
     std::cout << "\t > Setting up approximated path availability constraints. " << std::endl;
+    
     for (int k = 0; k < data.getNbDemands(); k++){
+        IloNumArray breakpoints(env);
+        IloNumArray slopes(env);
+        buildApproximationFunctionAvail(k, breakpoints, slopes);
+        // /** TEST WITH ANOTHER PIECEWISE DESCRIPTION **/
+        // IloNumArray coord_X(env);
+        // IloNumArray coord_Y(env);
+        // for (unsigned int i = 0; i < avail_breakpoints[k].size(); i++){
+        //     coord_X.add(avail_breakpoints[k][i]);
+        //     coord_Y.add(std::log(avail_breakpoints[k][i]));
+        // }
+        // double firstSlope = (1.0/avail_breakpoints[k][0]);
+        // double lastSlope = (1.0/avail_breakpoints[k][avail_breakpoints[k].size()-1]);
+        /***********************************************/
         for (int p = 0; p < data.getNbPaths(k); p++){
             IloExpr exp(env);
-            for (int r = 0; r < path_breakpoint[k].size(); r++){
-                exp += (path_breakpoint[k][r] * lambda[k][p][r]);
-            }
-            exp -= avail[k][p];
-            std::string name = "avail(" + std::to_string(k) + "," + std::to_string(p) + ")";
+            exp += approx_log_avail[k][p];
+            exp -= IloPiecewiseLinear(avail[k][p], breakpoints, slopes, avail_touch[k][0], std::log(avail_touch[k][0]));
+            // exp -= IloPiecewiseLinear(avail[k][p], firstSlope, coord_X, coord_Y, lastSlope);
+            std::string name = "approx_avail(" + std::to_string(k) + "," + std::to_string(p) + ")";
             constraints.add(IloRange(env, 0, exp, 0, name.c_str()));
             exp.clear();
             exp.end();
@@ -753,30 +829,12 @@ void Model::setPathAvailApproxConstraints(){
     for (int k = 0; k < data.getNbDemands(); k++){
         for (int p = 0; p < data.getNbPaths(k); p++){
             IloExpr exp(env);
-            for(int r = 0; r < path_breakpoint[k].size(); r++){
-                exp += lambda[k][p][r];
-            }
-            std::string name = "lambda(" + std::to_string(k) + "," + std::to_string(p) + ")";
-            constraints.add(IloRange(env, 1, exp, 1, name.c_str()));
-            exp.clear();
-            exp.end();
-        }
-    }
-
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            IloExpr exp(env);
-            for(int r = 0; r < path_breakpoint[k].size(); r++){
-                // coeff = g(bp[r])
-                double coeff = approx_log_from_above(path_breakpoint[k][r], path_breakpoint[k], path_vector_u[k]);
-                exp += coeff * lambda[k][p][r];
-            }
-
+            exp += approx_log_avail[k][p];
             for (NodeIt n(data.getGraph()); n != lemon::INVALID; ++n){
                 int v = data.getNodeId(n);
                 exp -= std::log(data.getNode(v).getAvailability()) * y[k][v][p];
             }
-            std::string name = "logAv(" + std::to_string(k) + "," + std::to_string(p) + ")";
+            std::string name = "avail(" + std::to_string(k) + "," + std::to_string(p) + ")";
             constraints.add(IloRange(env, -IloInfinity, exp, 0, name.c_str()));
             exp.clear();
             exp.end();
@@ -786,72 +844,85 @@ void Model::setPathAvailApproxConstraints(){
     for (int k = 0; k < data.getNbDemands(); k++){
         for (int p = 0; p < data.getNbPaths(k); p++){
             IloExpr exp(env);
+            double avail_ub = data.getChainAvailability(data.getNMostAvailableNodes(1));
             exp += avail[k][p];
-            exp -= alpha[k][p];
+            exp -= avail_ub*alpha[k][p];
             std::string name = "availImposition(" + std::to_string(k) + "," + std::to_string(p) + ")";
             constraints.add(IloRange(env, -IloInfinity, exp, 0, name.c_str()));
             exp.clear();
             exp.end();
         }
     }
-
+    
     for (int k = 0; k < data.getNbDemands(); k++){
         for (int p = 0; p < data.getNbPaths(k); p++){
             IloExpr exp(env);
-            for (unsigned int i = 0; i < interval[k][p].size(); i++){
-                exp += interval[k][p][i];
-            }
-            std::string name = "interval_choice(" + std::to_string(k) + "," + std::to_string(p) + ")";
-            constraints.add(IloRange(env, 1, exp, 1, name.c_str()));
+            double avail_lb = data.getChainAvailability(data.getNLeastAvailableNodes(data.getDemand(k).getNbVNFs()));
+            exp += avail[k][p];
+            exp -= avail_lb*alpha[k][p];
+            std::string name = "avail_lb(" + std::to_string(k) + "," + std::to_string(p) + ")";
+            constraints.add(IloRange(env, 0, exp, IloInfinity, name.c_str()));
             exp.clear();
             exp.end();
         }
     }
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            IloExpr exp(env);
-            exp += lambda[k][p][0];
-            exp -= interval[k][p][0];
-            std::string name = "interval_1st(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(0) + ")";
-            constraints.add(IloRange(env, -IloInfinity, exp, 0, name.c_str()));
-            exp.clear();
-            exp.end();
-        }
-    }
+}
 
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            for (unsigned int i = 1; i < lambda[k][p].size()-1; i++){
-                IloExpr exp(env);
-                exp += lambda[k][p][i];
-                exp -= interval[k][p][i];
-                exp -= interval[k][p][i-1];
-            
-                std::string name = "interval_imp(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(i) + ")";
-                constraints.add(IloRange(env, -IloInfinity, exp, 0, name.c_str()));
-                exp.clear();
-                exp.end();
-            }
-        }
+void Model::buildApproximationFunctionUnavail(int k, IloNumArray &breakpoints, IloNumArray &slopes){
+    for (unsigned int i = 0; i < unavail_breakpoints[k].size(); i++){
+        breakpoints.add(unavail_breakpoints[k][i]);
     }
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            unsigned int last = lambda[k][p].size()-1;
-            IloExpr expr(env);
-            expr += lambda[k][p][last];
-            expr -= interval[k][p][last-1];
-        
-            std::string name = "interval_last(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(last) + ")";
-            constraints.add(IloRange(env, -IloInfinity, expr, 0, name.c_str()));
-            expr.clear();
-            expr.end();
-        }
+    switch (data.getInput().getApproximationType()){
+        case Input::APPROXIMATION_TYPE_RESTRICTION:
+            for (unsigned int i = 0; i < unavail_touch[k].size(); i++){
+                double tangent = 1.0/unavail_touch[k][i];
+                slopes.add(tangent);
+            }
+            break;
+        case Input::APPROXIMATION_TYPE_RELAXATION:
+            slopes.add(1.0/unavail_breakpoints[k][0]);
+            for (unsigned int i = 0; i < unavail_breakpoints[k].size()-1; i++){
+                double delta_X = unavail_breakpoints[k][i+1] - unavail_breakpoints[k][i];
+                double delta_Y = std::log(unavail_breakpoints[k][i+1]) - std::log(unavail_breakpoints[k][i]);
+                slopes.add( delta_Y/delta_X );
+            }
+            slopes.add(0);
+            break;
+        default:
+            throw IloCplex::Exception(-1, "ERROR: Unexpected availability approx !");
     }
 }
 
 void Model::setConfigAvailApproxConstraints(){
     /** avail[k][p] = 1 - unavail[k][p] ***/
     std::cout << "\t > Setting up approximated config availability constraints. " << std::endl;
+    
+    for (int k = 0; k < data.getNbDemands(); k++){
+        IloNumArray breakpoints(env);
+        IloNumArray slopes(env);
+        buildApproximationFunctionUnavail(k, breakpoints, slopes);
+        // /** TEST WITH ANOTHER PIECEWISE DESCRIPTION **/
+        // IloNumArray coord_X(env);
+        // IloNumArray coord_Y(env);
+        // for (unsigned int i = 0; i < unavail_breakpoints[k].size(); i++){
+        //     coord_X.add(unavail_breakpoints[k][i]);
+        //     coord_Y.add(std::log(unavail_breakpoints[k][i]));
+        // }
+        // double firstSlope = (1.0/unavail_breakpoints[k][0]);
+        // double lastSlope = (1.0/unavail_breakpoints[k][unavail_breakpoints[k].size()-1]);
+        /***********************************************/
+        for (int p = 0; p < data.getNbPaths(k); p++){
+            IloExpr exp(env);
+            exp += approx_log_unavail[k][p];
+            exp -= IloPiecewiseLinear(unavail[k][p], breakpoints, slopes, 1, 0);
+            // exp -= IloPiecewiseLinear(unavail[k][p], firstSlope, coord_X, coord_Y, lastSlope);
+            std::string name = "approx_unavail(" + std::to_string(k) + "," + std::to_string(p) + ")";
+            constraints.add(IloRange(env, 0, exp, 0, name.c_str()));
+            exp.clear();
+            exp.end();
+        }
+    }
+
     for (int k = 0; k < data.getNbDemands(); k++){
         for (int p = 0; p < data.getNbPaths(k); p++){
             IloExpr exp(env);
@@ -863,103 +934,13 @@ void Model::setConfigAvailApproxConstraints(){
             exp.end();
         }
     }
-    
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            IloExpr exp(env);
-            for (int r = 0; r < config_breakpoint[k].size(); r++){
-                exp += (config_breakpoint[k][r] * c_lambda[k][p][r]);
-            }
-            exp -= unavail[k][p];
-            std::string name = "unavail2(" + std::to_string(k) + "," + std::to_string(p) + ")";
-            constraints.add(IloRange(env, 0, exp, 0, name.c_str()));
-            exp.clear();
-            exp.end();
-        }
-    }
-
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            IloExpr exp(env);
-            for(int r = 0; r < config_breakpoint[k].size(); r++){
-                exp += c_lambda[k][p][r];
-            }
-            std::string name = "clambda(" + std::to_string(k) + "," + std::to_string(p) + ")";
-            constraints.add(IloRange(env, 1, exp, 1, name.c_str()));
-            exp.clear();
-            exp.end();
-        }
-    }
-
-    
-
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            IloExpr exp(env);
-            for (unsigned int i = 0; i < c_interval[k][p].size(); i++){
-                exp += c_interval[k][p][i];
-            }
-            std::string name = "cinterval_choice(" + std::to_string(k) + "," + std::to_string(p) + ")";
-            constraints.add(IloRange(env, 1, exp, 1, name.c_str()));
-            exp.clear();
-            exp.end();
-        }
-    }
-    
-
-
-
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            IloExpr exp(env);
-            exp += c_lambda[k][p][0];
-            exp -= c_interval[k][p][0];
-            std::string name = "c_interval_1st(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(0) + ")";
-            constraints.add(IloRange(env, -IloInfinity, exp, 0, name.c_str()));
-            exp.clear();
-            exp.end();
-        }
-    }
-
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            for (unsigned int i = 1; i < c_lambda[k][p].size()-1; i++){
-                IloExpr exp(env);
-                exp += c_lambda[k][p][i];
-                exp -= c_interval[k][p][i];
-                exp -= c_interval[k][p][i-1];
-            
-                std::string name = "c_interval_imp(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(i) + ")";
-                constraints.add(IloRange(env, -IloInfinity, exp, 0, name.c_str()));
-                exp.clear();
-                exp.end();
-            }
-        }
-    }
-    for (int k = 0; k < data.getNbDemands(); k++){
-        for (int p = 0; p < data.getNbPaths(k); p++){
-            unsigned int last = c_lambda[k][p].size()-1;
-            IloExpr expr(env);
-            expr += c_lambda[k][p][last];
-            expr -= c_interval[k][p][last-1];
-        
-            std::string name = "c_interval_last(" + std::to_string(k) + "," + std::to_string(p) + "," + std::to_string(last) + ")";
-            constraints.add(IloRange(env, -IloInfinity, expr, 0, name.c_str()));
-            expr.clear();
-            expr.end();
-        }
-    }
 
     for (int k = 0; k < data.getNbDemands(); k++){
         IloExpr exp(env);
         for (int p = 0; p < data.getNbPaths(k); p++){
-            for(int r = 0; r < config_breakpoint[k].size(); r++){
-                // coeff = g(bp[r])
-                double coeff = approx_log_from_above(config_breakpoint[k][r], config_breakpoint[k], config_vector_u[k]);
-                exp += coeff * c_lambda[k][p][r];
-            }
+            exp += approx_log_unavail[k][p];
         }
-        std::string name = "Avail(" + std::to_string(k) + ")";
+        std::string name = "ReqAvail(" + std::to_string(k) + ")";
         double rhs = std::log(1.0 - data.getDemand(k).getAvailability());
         constraints.add(IloRange(env, -IloInfinity, exp, rhs, name.c_str()));
         exp.clear();
@@ -982,16 +963,17 @@ void Model::printResult(){
     const int NB_DEMANDS = data.getNbDemands();
     std::cout << "=> Printing solution ..." << std::endl;
     for (int k = 0; k < NB_DEMANDS; k++) {
+        std::cout << std::endl << "----------------------------------------------------" << std::endl << std::endl;
         std::cout << "k=" << k+1 << " : From " << data.getDemand(k).getSource() << " to " << data.getDemand(k).getTarget() << std::endl;
         double placementAv = getPlacementAvailability(k);
-        std::cout << "PLACEMENT AVAIL: " << placementAv << std::endl;
-        std::cout << "REQUIRED AVAIL: " << data.getDemand(k).getAvailability() << std::endl;
+        std::cout << "\t Placement Avail: " << placementAv << std::endl;
+        std::cout << "\t Required Avail : " << data.getDemand(k).getAvailability() << std::endl;
         if (placementAv < data.getDemand(k).getAvailability()){
-            std::cout << "====> Unfeasible by " << data.getDemand(k).getAvailability() - placementAv << std::endl;
+            std::cout << "\t ==> UNFEASIBLE BY " << data.getDemand(k).getAvailability() - placementAv << std::endl;
         }
         for (int p = 0; p < data.getNbPaths(k); p++){
             if (cplex.getValue(alpha[k][p]) > 1 - EPS){
-                std::cout << "  Path " << p+1 << std::endl;
+                std::cout << "\t Path " << p+1 << std::endl;
                 double path_availability = 1.0;
                 double log_path_availability = 0.0;
                 for (NodeIt n(data.getGraph()); n != lemon::INVALID; ++n){
@@ -1001,49 +983,37 @@ void Model::printResult(){
                         log_path_availability += std::log(data.getNode(v).getAvailability());
                     }
                 }
-                std::cout << "  Path avail : " << std::setprecision(9) << path_availability << ", \t";
-                std::cout << "  Var avail : " << std::setprecision(9) << cplex.getValue(avail[k][p]) << std::endl;
+                std::cout << "\t\t Real Path avail : " << std::setprecision(9) << path_availability << std::endl;
+                std::cout << "\t\t Var avail       : " << std::setprecision(9) << cplex.getValue(avail[k][p]) << std::endl;
                 if (path_availability - cplex.getValue(avail[k][p]) < 0.0){
-                    std::cout << " >> ERROR : " << std::setprecision(9) << path_availability - cplex.getValue(avail[k][p]) << ". Negative approx !!!" << std::endl; 
+                    std::cout << "\t\t (N)" << std::endl;
                 }
                 else{
-                    std::cout << " Diff : " << std::setprecision(9) << path_availability - cplex.getValue(avail[k][p]) << std::endl; 
+                    std::cout << "\t\t (P)" << std::endl; 
                 }
-                double computed_avail = 0;
-                double computed_var_log = 0;
-                for (int r = 0; r < PATH_NB_BREAKS; r++){
-                    if (cplex.getValue(lambda[k][p][r]) >  EPSILON){
-                        computed_avail += path_breakpoint[k][r]* cplex.getValue(lambda[k][p][r]);
-                        computed_var_log += std::log(path_breakpoint[k][r])* cplex.getValue(lambda[k][p][r]);
-                        std::cout << "  > u" << r << ": " << path_breakpoint[k][r] << ", lambda = " << cplex.getValue(lambda[k][p][r]) << std::endl;
-                    }
-                }
-                std::cout << "  log avail : " << std::setprecision(9) << std::log(path_availability) << std::endl;
-                std::cout << "  g(avail) : " << std::setprecision(9) << computed_var_log << std::endl;
+                
+                std::cout << "\t\t log avail      : " << std::setprecision(9) << std::log(path_availability) << std::endl;
+                std::cout << "\t\t approx(avail)  : " << std::setprecision(9) << cplex.getValue(approx_log_avail[k][p])  << std::endl;
                 // std::cout << "  Var unavail : " << cplex.getValue(unavail[k][p]) << std::endl;
                 // std::cout << "  Real unavail : " << 1.0 - path_availability << std::endl;
                 // for (int r = 0; r < CONFIG_NB_BREAKS; r++){
                 //     if (cplex.getValue(c_lambda[k][p][r]) >  EPS){
-                //         std::cout << "  > b_" << r << ": " << config_breakpoint[r] << ", c_lambda = " << cplex.getValue(c_lambda[k][p][r]) << std::endl;
+                //         std::cout << "  > b_" << r << ": " << unavail_breakpoints[r] << ", c_lambda = " << cplex.getValue(c_lambda[k][p][r]) << std::endl;
                 //     }
                 // }
+                std::cout << "\t\t Path description : " << std::endl;
                 for (int i = 0; i < data.getDemand(k).getNbVNFs() + 1; i++){
-                    std::cout << "    Section " << i+1 << " : ";
+                    std::cout << "\t\t\t Section " << i+1 << " : ";
                     printSectionPath(k, p, i);
                 }
             }
             else{
-                std::cout << "  Path " << p+1 << " not used." << std::endl;
-                std::cout << "  Var avail : " << cplex.getValue(avail[k][p]) << std::endl;
-                for (int r = 0; r < lambda[k][p].size(); r++){
-                    if (cplex.getValue(lambda[k][p][r]) >  EPS){
-                        std::cout << "  > u" << r << ": " << path_breakpoint[k][r] << ", lambda = " << cplex.getValue(lambda[k][p][r]) << std::endl;
-                    }
-                }
+                std::cout << "\t\t Path " << p+1 << " not used." << std::endl;
+                std::cout << "\t\t Var avail : " << cplex.getValue(avail[k][p]) << std::endl;
                 // std::cout << "  Var unavail : " << cplex.getValue(unavail[k][p]) << std::endl;
                 // for (int r = 0; r < CONFIG_NB_BREAKS; r++){
                 //     if (cplex.getValue(c_lambda[k][p][r]) >  EPS){
-                //         std::cout << "  > b_" << r << ": " << config_breakpoint[r] << ", c_lambda = " << cplex.getValue(c_lambda[k][p][r]) << std::endl;
+                //         std::cout << "  > b_" << r << ": " << unavail_breakpoints[r] << ", c_lambda = " << cplex.getValue(c_lambda[k][p][r]) << std::endl;
                 //     }
                 // }
             }
@@ -1057,23 +1027,31 @@ void Model::printResult(){
     std::cout << "Lazy constraints added: " << callback->getNbLazyConstraints() << std::endl;
     std::cout << "Time on cuts: " << callback->getTime() << std::endl;
     std::cout << "Total time: " << time << std::endl << std::endl;
-
+    //testRelaxationAvail();
 }
 
+/* Returns the path availability induced by CPLEX's solution */
+double Model::getPathAvailability(int k, int p){
+     if (cplex.getValue(alpha[k][p]) > 1 - EPS){
+        double path_availability = 1.0;
+        for (NodeIt n(data.getGraph()); n != lemon::INVALID; ++n){
+            int v = data.getNodeId(n);
+            if (cplex.getValue(y[k][v][p]) > 1 - EPS){
+                path_availability *= data.getNode(v).getAvailability();
+            }
+        }
+        return path_availability;
+     }
+     return 0;
+}
+
+/* Returns the placement availability induced by CPLEX's solution */
 double Model::getPlacementAvailability(int k){
-    
-    /* Compute placement availability */
     double prob_all_paths_fail = 1.0;
     for (unsigned int p = 0; p < alpha[k].size(); p++){
         double path_failure = 1.0;
         if (cplex.getValue(alpha[k][p]) > 1 - EPS){
-            double path_availability = 1.0;
-            for (NodeIt n(data.getGraph()); n != lemon::INVALID; ++n){
-                int v = data.getNodeId(n);
-                if (cplex.getValue(y[k][v][p]) > 1 - EPS){
-                    path_availability *= data.getNode(v).getAvailability();
-                }
-            }
+            double path_availability = getPathAvailability(k, p);
             path_failure = 1.0 - path_availability;
         }
         prob_all_paths_fail *= path_failure;
@@ -1170,6 +1148,37 @@ void Model::output(){
 
 }
 
+/****************************************************************************************/
+/*										   Tests  										*/
+/****************************************************************************************/
+
+/** Checks if output value of variables are consistent. **/
+void Model::testRelaxationAvail(){
+    const int NB_DEMANDS = data.getNbDemands();
+    std::cout << std::endl << std::endl;
+    std::cout << "==========================================================================" << std::endl;
+    std::cout << "  Testing consistency of path availabilities in the relaxation case ..." << std::endl;
+    std::cout << "==========================================================================" << std::endl << std::endl;
+    for (int k = 0; k < NB_DEMANDS; k++) {
+        std::cout << "Demand " << k+1 << " : From " << data.getDemand(k).getSource() << " to " << data.getDemand(k).getTarget() << std::endl;
+        for (int p = 0; p < data.getNbPaths(k); p++){
+            if (cplex.getValue(alpha[k][p]) > 1 - EPS){
+                const double PATH_AVAIL    = getPathAvailability(k, p);
+                const double VAR_AVAIL     = cplex.getValue(avail[k][p]);
+                std::cout << "\t Path " << p+1 << std::endl;
+                std::cout << "\t\t Avail induced by y variables : " << std::setprecision(9) << PATH_AVAIL << std::endl;
+                std::cout << "\t\t Value of variable avail :      " << std::setprecision(9) << VAR_AVAIL  << std::endl;
+                if (PATH_AVAIL >= VAR_AVAIL + 0.00000001){
+                    std::cout << "\t\t\t ====> ERROR : " << std::setprecision(9) << PATH_AVAIL - cplex.getValue(avail[k][p]) << ". Negative approx !!!" << std::endl; 
+                }
+            }
+            else{
+                std::cout << "\t Path " << p+1 << " not used." << std::endl;
+                std::cout << "\t\t Value of variable avail : " << cplex.getValue(avail[k][p]) << std::endl;
+            }
+        }
+    }
+}
 /****************************************************************************************/
 /*										Destructors 									*/
 /****************************************************************************************/

@@ -20,6 +20,7 @@ Input::Input(const std::string filename) : parameters_file(filename){
     approx_type             = (Approximation_Type)std::stoi(getParameterValue("availability_relax="));
 
     linear_relaxation       = std::stoi(getParameterValue("linearRelaxation="));
+    basic                   = std::stoi(getParameterValue("basic="));
     time_limit              = std::stoi(getParameterValue("timeLimit="));
     nb_breakpoints          = std::stoi(getParameterValue("nb_breakpoints="));
 

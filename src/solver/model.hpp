@@ -34,36 +34,35 @@ typedef std::vector<IloNum4DMatrix>    IloNum5DMatrix;
 class Model
 {
 	private:
-		/*** General variables ***/
+		/*** Cplex features ***/
 		const IloEnv&   env;    /**< IBM environment **/
 	 	IloModel        model;  /**< IBM Model **/
 		IloCplex        cplex;  /**< IBM Cplex **/
-		const Data&     data;   /**< Data read in data.hpp **/
 
 		/*** Formulation specific ***/
+		const Data&     data;   /**< Data read in data.hpp **/
+		IloObjective    obj;            /**< Objective function **/
+		IloRangeArray   constraints;    /**< Set of constraints **/
+		Callback* 		callback; 		/**< User generic callback **/
+
+		/*** Formulation variables ***/
 		IloNumVar4DMatrix 	f;              /**< Flow variables **/
 		IloNumVarMatrix 	z;              /**< VNF global placement variables **/
 		IloNumVar3DMatrix 	y;              /**< VNF path placement variables **/
 		IloNumVar4DMatrix 	x;            	/**< VNF section placement variables **/
 		IloNumVarMatrix 	alpha;          /**< Path activation variables **/
-		IloObjective    	obj;            /**< Objective function **/
-		IloRangeArray   	constraints;    /**< Set of constraints **/
-		Callback* 			callback; 		/**< User generic callback **/
 
-
+		/*** Approx additional variables ***/
+		IloNumVarMatrix 	avail;             		/**< availability of path **/
+		IloNumVarMatrix 	approx_log_avail;   	/**< approximated log of availability of path**/
+		IloNumVarMatrix 	unavail;            	/**< unavailability of path **/
+		IloNumVarMatrix 	approx_log_unavail;   	/**< approximated log of unavailability of path**/
+		
 		/*** Approx additional features ***/
-		IloNumVar3DMatrix 	lambda;              /**< Lambda for piecewise linear approx of availability paths**/
-		IloNumVar3DMatrix 	interval;              /**< Lambda intervals for piecewise linear approx of availability paths**/
-		IloNumVar3DMatrix 	c_interval;              /**< Lambda intervals for piecewise linear approx of availability paths**/
-		IloNumVar3DMatrix 	c_lambda;              /**< Lambda for piecewise linear approx of availability paths**/
-		IloNumVarMatrix 	avail;              /**< availability of path **/
-		IloNumVarMatrix 	unavail;              /**< unavailability of path **/
-		int PATH_NB_BREAKS; 					/**< number of breakpoints>**/
-		int CONFIG_NB_BREAKS; 					/**< number of breakpoints>**/
-		IloNumMatrix path_vector_u; 
-		IloNumMatrix path_breakpoint; 
-		IloNumMatrix config_breakpoint; 
-		IloNumMatrix config_vector_u; 
+		IloNumMatrix 		avail_touch; 			/**< the vector of points where the availability approximation function touches the approximated function */
+		IloNumMatrix 		avail_breakpoints; 		/**< the vector of points where the availability approximation function changes its slope */
+		IloNumMatrix 		unavail_touch; 			/**< same as avail_breakpoints but related with the unavailability approx **/
+		IloNumMatrix 		unavail_breakpoints; 	/**< same as avail_touch but related with the unavailability approx **/
 
 		/*** Manage execution and control ***/
 		IloNum time;
@@ -116,14 +115,22 @@ class Model
 		void setConfigAvailApproxConstraints();
 
 		/* Set up the breakpoints for approximating log(avail). */
-		void buildAvailBreakpoints();
+		void buildAvailVector_u();
+    	void buildAvailBreakpoints();
+    	void buildUnavailVector_u();
+    	void buildUnavailBreakpoints();
+		void buildPiecewiseLinearApproximation();
+		void buildApproximationFunctionAvail(int k, IloNumArray &breakpoints, IloNumArray &slopes);
+		void buildApproximationFunctionUnavail(int k, IloNumArray &breakpoints, IloNumArray &slopes);
+
 		/* Returns the value of approx function on y */
 		double approx_log_from_above(double y, const vector<IloNum> &breaks, const vector<IloNum> &u);
-		
+		double approx_log_from_below(double x, const IloNumVector &breakpoints);
 	/****************************************************************************************/
 	/*										   Getters  									*/
 	/****************************************************************************************/
 		double getPlacementAvailability(int k);
+		double getPathAvailability(int k, int p);
 	/****************************************************************************************/
 	/*										   Methods  									*/
 	/****************************************************************************************/
@@ -138,6 +145,12 @@ class Model
 
 		/** Outputs the obtained results **/
 		void output();
+	/****************************************************************************************/
+	/*										   Tests  										*/
+	/****************************************************************************************/
+		/** Checks if output value of variables are consistent. **/
+		void testRelaxationAvail();
+		void testRelaxationUnavail();
 
 	/****************************************************************************************/
 	/*										Destructors 									*/
