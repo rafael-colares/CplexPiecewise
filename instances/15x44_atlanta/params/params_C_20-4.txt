@@ -1,0 +1,29 @@
+#################################################
+#                Input File Paths               #
+#################################################
+nodeFile=/mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/node_C.csv
+linkFile=/mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/link.csv
+demandFile=/mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/20demand_4.csv
+vnfFile=/mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/vnf.csv
+
+#################################################
+#            Optimization Parameters            #
+#################################################
+linearRelaxation=0
+timeLimit=3600
+
+#################################################
+#            Formulation Improvements           #
+#################################################
+disaggregated_VNF_Placement=0
+strong_node_capacity=0
+
+availability_cuts=0
+node_cover=0
+chain_cover=0
+vnf_lower_bound=0
+section_failure=0
+#################################################
+#              Output File Paths                #
+#################################################
+outputFile=/mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/output/output.txt

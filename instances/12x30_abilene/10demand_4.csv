@@ -1,0 +1,11 @@
+name;source;target;max_latency;bandwidth;availability;vnf_list;
+d_1;SNVAng;CHINng;10;12;0.999923;vnf_3,vnf_2,vnf_6,vnf_7
+d_2;ATLAng;IPLSng;10;3;0.999974;vnf_1,vnf_2,vnf_4,vnf_6
+d_3;WASHng;ATLAng;10;5;0.999992;vnf_7
+d_4;CHINng;DNVRng;10;9;0.999941;vnf_5,vnf_2,vnf_8
+d_5;CHINng;IPLSng;10;4;0.999953;vnf_7
+d_6;HSTNng;DNVRng;10;8;0.999933;vnf_6,vnf_5
+d_7;LOSAng;ATLAM5;10;8;0.999908;vnf_5,vnf_3,vnf_6,vnf_1
+d_8;ATLAng;SNVAng;10;3;0.999975;vnf_1
+d_9;DNVRng;CHINng;10;7;0.999921;vnf_6
+d_10;KSCYng;DNVRng;10;9;0.999907;vnf_3,vnf_5

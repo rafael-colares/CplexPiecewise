@@ -1,0 +1,30 @@
+#################################################
+#                Input File Paths               #
+#################################################
+nodeFile=../instances/15x44_atlanta/node_R.csv
+linkFile=../instances/15x44_atlanta/link.csv
+vnfFile=../instances/15x44_atlanta/vnf.csv
+demandFile=../instances/15x44_atlanta/10demand_1.csv
+
+#################################################
+#            Optimization Parameters            #
+#################################################
+basic=1
+linearRelaxation=0
+timeLimit=7200
+availability_relax=1
+nb_breakpoints=3
+
+#################################################
+#            Formulation Improvements           #
+#################################################
+strong_node_capacity=0
+nb_paths_upper_bound=0
+nb_paths_lower_bound=0
+
+section_failure=0
+#################################################
+#              Output File Paths                #
+#################################################
+outputFile=./log_basic.txt
+
