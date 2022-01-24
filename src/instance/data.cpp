@@ -310,7 +310,7 @@ void Data::computeMaxPathPerDemand()
 	const int NB_DEMANDS = getNbDemands();
 	maxPathsPerDemand.resize(NB_DEMANDS);
 	for (int k = 0; k < NB_DEMANDS; k++){
-		maxPathsPerDemand[k] = getNbPaths();
+		maxPathsPerDemand[k] = getNbNodes();
 	}
 	if (getInput().getNbPathsUpperBound() == Input::NB_PATHS_UPPER_BOUND_ON){
 		for (int k = 0; k < NB_DEMANDS; k++){

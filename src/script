@@ -9,6 +9,6 @@ echo "This is a script for running an Orange program.";
 #./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_C_30-1.txt;
 #./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_R_30-1.txt;
 #./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_U_30-1.txt;
-./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_C_40-1.txt;
-./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_R_40-1.txt;
+./exec params.txt;
+#./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_R_40-1.txt;
 #./exec /mnt/c/Resilience/Instances/SNDLib/15x44_atlanta/paramsCuts/params_U_40-1.txt;

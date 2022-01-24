@@ -154,7 +154,6 @@ public:
 	const int getLongestSFC() const;
 
 	/* Return an upper bound on the number of vnf-disjoint paths */
-	const int getNbPaths() const { return getNbNodes(); }
 	const int getNbPaths(int k) const { return maxPathsPerDemand[k]; } 
 
 	/****************************************************************************************/

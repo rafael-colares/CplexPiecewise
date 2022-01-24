@@ -41,6 +41,8 @@ std::string Input::getParameterValue(std::string pattern){
             std::size_t pos = line.find(pattern);
             if (pos != std::string::npos){
                 value = line.substr(pos + pattern.size());
+                value.erase(std::remove(value.begin(), value.end(), '\r'), value.end());
+                value.erase(std::remove(value.begin(), value.end(), '\n'), value.end());
                 if (value.empty()){
                     std::cout << "WARNING: Field '" << pattern << "' is empty." << std::endl; 
                 }
