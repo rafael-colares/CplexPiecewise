@@ -40,7 +40,7 @@ class Model
 		IloCplex        cplex;  /**< IBM Cplex **/
 
 		/*** Formulation specific ***/
-		const Data&     data;   /**< Data read in data.hpp **/
+		const Data&     data;   		/**< Data read in data.hpp **/
 		IloObjective    obj;            /**< Objective function **/
 		IloRangeArray   constraints;    /**< Set of constraints **/
 		Callback* 		callback; 		/**< User generic callback **/

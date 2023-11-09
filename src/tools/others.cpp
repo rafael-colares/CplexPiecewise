@@ -1,17 +1,19 @@
 #include "others.hpp"
 /* Writes a greeting message. */
 void greetingMessage(){
-    std::cout << "=================================================================" << std::endl;
-    std::cout << "- This program was developed by Rafael Colares for Orange Labs. -" << std::endl;
-    std::cout << "=================================================================" << std::endl;
+    std::cout << "===========================================================================================" << std::endl;
+    std::cout << "- This program deals with the Availability-Aware Service Function Chains Routing Problem. -" << std::endl;
+    std::cout << "-                                                                                         -" << std::endl;
+    std::cout << "-     Author:        Rafael Colares                                                       -" << std::endl;
+    std::cout << "-     Latest update: 09 Nov 2023                                                          -" << std::endl;
+    std::cout << "===========================================================================================" << std::endl;
 }
 
 /* Returns the path to parameter file. */
 std::string getParameter(int argc, char *argv[]){
     std::string param;
     if (argc != 2){
-		std::cerr << "A parameter file is required in the arguments. Please run the program in the following way: \n ./exec parameterFile.txt\n";
-		throw std::invalid_argument( "@racolares: An argument is missing." );
+		throw std::invalid_argument("A parameter file is required in the arguments.\n Please run the executable file in the following way: ./exec parameterFile.txt\n" );
 	}
 	else{
 		param = argv[1];
