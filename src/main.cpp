@@ -4,6 +4,7 @@ ILOSTLBEGIN
 #include "tools/others.hpp"
 #include "instance/data.hpp"
 #include "solver/model.hpp"
+#include "piecewise/approximation.hpp"
 
 int main(int argc, char *argv[]) {
     greetingMessage();
@@ -34,5 +35,9 @@ int main(int argc, char *argv[]) {
 
     /*** Finalization ***/
     env.end();
+
+
+    Approximation logarithm(Piecewise::buildLogFunction(1000, 0.75, 1.0), Approximation::Direction::DIRECTION_FROM_BELOW);
+    logarithm.buildApproximation(10);
     return 0;
 }

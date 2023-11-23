@@ -9,16 +9,16 @@ demandFile=../instances/12x30_abilene/10demand_1.csv
 #################################################
 #              Output File Paths                #
 #################################################
-outputFile=/mnt/c/Resilience/Output/tests.txt
+outputFile=../output/tests.txt
 
 #################################################
 #            Optimization Parameters            #
 #################################################
 basic=0
 linearRelaxation=0
-timeLimit=3600
+timeLimit=10
 availability_relax=0
-nb_breakpoints=7
+nb_breakpoints=3
 
 #################################################
 #            Formulation Improvements           #

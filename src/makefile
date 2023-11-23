@@ -23,13 +23,13 @@ LEMON_FLAGS = -lemon
 # Compiler options
 # ---------------------------------------------------------------------
 CCC = g++ -O2 -std=c++11
-CCOPT = -m64 -O -fPIC -fno-strict-aliasing -fexceptions -DNDEBUG -DIL_STD -Wno-ignored-attributes 
+CCOPT = -m64 -O -fPIC -fno-strict-aliasing -fexceptions -DIL_STD -Wno-ignored-attributes 
 
 
 #---------------------------------------------------------
 # .cpp Files
 #---------------------------------------------------------
-CPPFILES = main.cpp instance/*.cpp network/*.cpp solver/*.cpp tools/*.cpp
+CPPFILES = main.cpp instance/*.cpp network/*.cpp solver/*.cpp tools/*.cpp piecewise/*.cpp
 
 #---------------------------------------------------------
 # Files
