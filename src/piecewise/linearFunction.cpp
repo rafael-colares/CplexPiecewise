@@ -17,10 +17,7 @@ LinearFunction::LinearFunction(const Point &p1, const Point &p2)
 
 Point LinearFunction::getIntersectionPoint(const LinearFunction &f)
 {
-    if (this->getA() == f.getA()){
-        throw std::invalid_argument("Provided lines are parallel. Both slopes are identical : a = " + std::to_string(this->getA()) + ".");
-        exit(0);
-    }
+    assert(this->getA() != f.getA());
     double x = (f.getB() - this->getB())/(this->getA() - f.getA());
     double y = this->getValueAt(x);
     return Point(x,y);

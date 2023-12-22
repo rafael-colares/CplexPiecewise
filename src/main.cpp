@@ -36,8 +36,34 @@ int main(int argc, char *argv[]) {
     /*** Finalization ***/
     env.end();
 
+   
+    Approximation equidistant_inner_approx(Piecewise::buildLogFunction(2000, 0.75, 1.0), Approximation::Direction::DIRECTION_FROM_BELOW, Approximation::Method::METHOD_EQUIDISTANT, 6);
+    Approximation billonnet_inner_approx(Piecewise::buildLogFunction(2000, 0.75, 1.0), Approximation::Direction::DIRECTION_FROM_BELOW, Approximation::Method::METHOD_BILLONNET, 6);
+    Approximation shortest_path_inner_approx(Piecewise::buildLogFunction(2000, 0.75, 1.0), Approximation::Direction::DIRECTION_FROM_BELOW, Approximation::Method::METHOD_SHORTEST_PATH, 6);
 
-    Approximation logarithm(Piecewise::buildLogFunction(1000, 0.75, 1.0), Approximation::Direction::DIRECTION_FROM_BELOW);
-    logarithm.buildApproximation(10);
+
+
+ 
+    Approximation equidistant_outer_approx(Piecewise::buildLogFunction(2000, 0.75, 1.0), Approximation::Direction::DIRECTION_FROM_ABOVE, Approximation::Method::METHOD_EQUIDISTANT, 6);
+    Approximation billonnet_outer_approx(Piecewise::buildLogFunction(2000, 0.75, 1.0), Approximation::Direction::DIRECTION_FROM_ABOVE, Approximation::Method::METHOD_BILLONNET, 6);
+    Approximation shortest_path_outer_approx(Piecewise::buildLogFunction(2000, 0.75, 1.0), Approximation::Direction::DIRECTION_FROM_ABOVE, Approximation::Method::METHOD_SHORTEST_PATH, 6);
+
+
+    std::cout << std::endl << std::endl << "RESULTS INNER APPROX : " << std::endl << std::endl;
+    equidistant_inner_approx.displayApprox();
+    std::cout << std::endl;
+    billonnet_inner_approx.displayApprox();
+    std::cout << std::endl;
+    shortest_path_inner_approx.displayApprox();
+    std::cout << std::endl;
+
+    std::cout << std::endl << std::endl << "RESULTS OUTER APPROX : " << std::endl << std::endl;
+    equidistant_outer_approx.displayApprox();
+    std::cout << std::endl;
+    billonnet_outer_approx.displayApprox();
+    std::cout << std::endl;
+    shortest_path_outer_approx.displayApprox();
+    std::cout << std::endl;
+    
     return 0;
 }

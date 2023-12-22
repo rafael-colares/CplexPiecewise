@@ -38,6 +38,8 @@ class Segment{
         const Point getInf() const;
         /** Returns the function value at x. **/
         const Point getSup() const;
+
+        const std::string toString() const;
 };
 
 #endif

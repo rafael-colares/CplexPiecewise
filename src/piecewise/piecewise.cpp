@@ -63,6 +63,14 @@ void Piecewise::setFunction(const std::vector<Point> &breakpointList)
     addSegment(Segment( breakpointList.back(), Point(DBL_MAX, breakpointList.back().second)));
 }
 
+void Piecewise::displayBreakpoints() const
+{
+    for (unsigned int i = 1; i < segments.size(); i++){
+        std::cout << "(" << segments[i].getInf().first << ", " << segments[i].getInf().second << ")  ";
+    }
+    std::cout << std::endl;
+}
+
 Piecewise Piecewise::buildLogFunction(int nbSegments, double inf, double sup)
 {
     assert(inf > 0 && inf < sup && nbSegments >= 1);
@@ -82,4 +90,14 @@ Piecewise Piecewise::buildLogFunction(int nbSegments, double inf, double sup)
     }
     logFunc.addSegment(Segment( Point(sup, log(sup)), Point(DBL_MAX, log(sup)) ));
     return logFunc;
+}
+
+const std::string Piecewise::toString() const
+{
+    std::string str = "";
+    str += "Piecewise lienar function : \n";
+    for (Segment s : segments){
+        str += s.toString() + "\n";
+    }
+    return str;
 }

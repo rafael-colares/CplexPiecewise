@@ -42,13 +42,25 @@ class Piecewise{
         /** Returns the i-th segment. */
         const Segment getSegment_i(int i) const { return segments[i]; }
 
+        /** Returns the x coordinate of the first breakpoint. */
+        const double getInf() const { return segments.front().getSup().first; }
+
+        /** Returns the x coordinate of the last breakpoint. */
+        const double getSup() const { return segments.back().getInf().first; }
+
         /** Returns the i-th breakpoint. */
         const Point getBreakpoint_i(int i) const;
 
         /** Sets the piecewise linear function from a list of breakpoints */
         void setFunction(const std::vector<Point> &breakpointList);
 
+        /** Displays the list of breakpoints */
+        void displayBreakpoints() const;
+
+        /** Builds a piecewise linear function that approximates the logarithm function from below. The breakpoints are evenly spaced in the interval required. @param nbSegments number of segments to be applied within the interval. @param inf lower interval boundary. @param sup upper interval boundary. */
         static Piecewise buildLogFunction(int nbSegments, double inf, double sup);
+
+        const std::string toString() const;
 };
 
 #endif

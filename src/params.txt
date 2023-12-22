@@ -16,7 +16,7 @@ outputFile=../output/tests.txt
 #################################################
 basic=0
 linearRelaxation=0
-timeLimit=10
+timeLimit=5
 availability_relax=0
 nb_breakpoints=3
 

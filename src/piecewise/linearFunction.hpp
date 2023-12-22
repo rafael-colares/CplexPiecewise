@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <iostream>
+#include <assert.h>
 
 typedef std::pair<double, double> Point;
 
@@ -45,6 +46,8 @@ class LinearFunction{
 
         /** Returns the point of intersection with the given linear function. **/
         Point getIntersectionPoint(const LinearFunction &f);
+
+        std::string toString() const {return std::to_string(a) + "*x + " + std::to_string(b); }
 };
 
 #endif

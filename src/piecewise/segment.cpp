@@ -21,3 +21,8 @@ const Point Segment::getSup() const
     double x = interval.getSup();
     return Point(x, getValueAt(x));
 }
+
+const std::string Segment::toString() const
+{
+    return "In " + interval.toString() + " : " + f.toString();
+}

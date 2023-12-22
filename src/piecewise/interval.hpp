@@ -4,6 +4,7 @@
 #include <float.h>
 #include <assert.h>
 #include <utility>
+#include <iostream>
 
 /**
  * This class models an interval in the real line. The interval is defined as [inf, sup].
@@ -34,6 +35,8 @@ class Interval{
 
         /** Checks if the interval contains a given point.**/
         const bool contains(double x) const { return (x >= getInf() && x <= getSup()); }
+
+        const std::string toString() const;
 
 };
 
